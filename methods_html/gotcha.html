@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<link rel="stylesheet" type="text/css" href="../style_related/page_format.css">
+<title>GoT-ChA 10x Chromium single cell ATAC</title>
+</head>
+<body>
+
+<h1><a href="https://github.com/landau-lab/Gotcha" target="_blank"><span style="color:red;">GoT-ChA 10x Chromium single cell ATAC</span></a></h1>
+<p><info>GoT-ChA is a <a href="https://www.protocols.io/view/got-cha-genotyping-of-targeted-loci-with-single-ce-dnnh5db6.html" target="_blank"><span style="color:blue;">method</span></a> that spikes in primers during 10x Chromium single cell ATAC to capture genotypes of interest.</info></p>
+<p><info>Briefly, a partial R1 tag is added to the forward primer for capture in the GEMs. A portion of the ATAC library is used for GoT-ChA library preparation. During GoT-ChA library preparation, a forward-biotinylated nested primer reaction is performed, after which the product is pulled down with streptavidin beads.</info></p>
+<p><info>In our modified protocol, we change the ADT adapter (nested primer handle) to a TruSeq2 read 2 at the P7 end. Our GoT-ChA libraries thus have a nextera read 1 at the left hand side and a TruSeq read 2 on the right hand side, while the single cell ATAC library follows the conventional nextera library structure (same as 10x). </info></p>
+<p><info>The Chromium Single Cell ATAC chemistry is shown here. Oligo sequence information is taken from <a href="../data/10X-Genomics/CG000168_ChromiumSingleCellATAC_ReagentKits_UserGuide_RevA.pdf" target="_blank"><span style="color:blue;">Chromium Single Cell ATAC Reagent Kits</span></a>. The cell barcodes used in this method is slightly different from those used in the 3' gene expression assay, although the number of the cell barcodes is the same (737,280). You can find out all the cell barcodes (16 bp) here: <a href="../data/10X-Genomics/737K-cratac-v1.txt.gz" target="_blank">737K-cratac-v1.txt.gz</a>. This file is copied from <a href="https://support.10xgenomics.com/single-cell-atac/software/pipelines/latest/what-is-cell-ranger-atac" target="blank">Cell Ranger ATAC</a> (using Cell Ranger ATAC v1.0.0 as an example) /path/to/cellranger-atac-1.0.0/1.0.0/lib/python/barcodes/.</info></p>
+
+
+<br>
+
+<h2>Adapter and primer sequences:</h2>
+<seq>
+<p>Beads-oligo: |--5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5> -3'</p>
+<p>SI-PCR Primer B (PN-2000128): 5'- <p5>AATGATACGGCGACCACCGAGA</p5> -3'</p>
+<p>i7 Sample Index Plate N, Set A (PN-3000262): 5'- <p7>CAAGCAGAAGACGGCATACGAGAT</p7>[8-bp sample index]<s7>GTCTCGTGGGCTCGG</s7> -3'</p>
+<p>i7 TruSeq primer: 5'- <p7>CAAGCAGAAGACGGCATACGAGAT</p7>[8-bp i7]<s7>GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT</s7> -3'</p>
+<p>IS2: 5'- <is2>AGCAAGTGAGAAGCATCGTGTC</is2> -3'</p>
+<p>GoT-ChA Forward Primer: 5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi> -3'</p>
+<p>GoT-ChA Reverse Primer: 5'- <is2>AGCAAGTGAGAAGCATCGTGTC</is2><goi>[GOI rev-primer]</goi> -3'</p>
+<p>GoT-ChA Nested Primer: 5'- /5BiosG/<s7>CAGACGTGTGCTCTTCCGATCT</s7><goi>[GOI nested-primer]</goi> -3'</p>
+<p>Nextera left primer entry point (s5): 5'- <s5>TCGTCGGCAGCGTC</s5> -3'</p>
+<p>Nextera right primer entry point (s7): 5'- <s7>GTCTCGTGGGCTCGG</s7> -3'</p>
+<p>Illumina Nextera Read 1 primer: 5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me> -3'</p>
+<p>Illumina Nextera Read 2 primer: 5'- <s7>GTCTCGTGGGCTCGG</s7><me>AGATGTGTATAAGAGACAG</me> -3'</p>
+<p>Illumina TruSeq Read 2 sequencing primer: 5'- <s7>GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT</s7> -3'</p>
+<p>Nextera Sample index sequencing primer (index1): 5'- <me>CTGTCTCTTATACACATCT</me><s7>CCGAGCCCACGAGAC</s7> -3'</p>
+<p>TruSeq Sample Index sequencing primer (index1): 5'- <s7>GATCGGAAGAGCACACGTCTGAACTCCAGTCAC</s7> -3'</p>
+<p>Cell barcode sequencing primer (index2): 5'- <me>CTGTCTCTTATACACATCT</me><s5>GACGCTGCCGACGA</s5> -3'</p>
+<p>Illumina P5 adapter: 5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5> -3'</p>
+<p>Illumina P7 adapter: 5'- <p7>CAAGCAGAAGACGGCATACGAGAT</p7> -3'</p>
+
+</seq>
+
+<br>
+
+<h2>Step-by-step library generation</h2>
+<h3>(1) Bulk Tn5 tagging by incubation of nuclei and Tn5:</h3>
+<img src="../data/tn5_dimer.svg" alt="Tn5 dimer" style="width:800px;height:450px;">
+
+<h3>(2) There are 3 different products after step (1) (will create 9 bp gap):</h3>
+<pre>
+<seq>
+<i>Product 1 (s5 at both ends, not amplifiable due to <a href="http://www.nature.com/nmeth/journal/v7/n7/full/nmeth.1470.html" target="_blank">semi-suppressive PCR</a>):</i>
+
+5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>XXXXXXXXXXXX...XXX         <me>CTGTCTCTTATACACATCT</me>
+                  <me>TCTACACATATTCTCTGTC</me>         XXX...XXXXXXXXXXXX<me>GACAGAGAATATGTGTAGA</me><s5>CTGCGACGGCTGCT</s5> -5'
+
+
+<i>Product 2 (s7 at both ends, not amplifiable due to <a href="http://www.nature.com/nmeth/journal/v7/n7/full/nmeth.1470.html" target="_blank">semi-suppressive PCR</a>):</i>
+
+5'- <s7>GTCTCGTGGGCTCGG</s7><me>AGATGTGTATAAGAGACAG</me>XXXXXXXXXXXX...XXX         <me>CTGTCTCTTATACACATCT</me>
+                   <me>TCTACACATATTCTCTGTC</me>         XXX...XXXXXXXXXXXX<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7> -5'
+
+
+<i>Product 3 (different ends, amplifiable):</i>
+
+5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>XXXXXXXXXXXX...XXX         <me>CTGTCTCTTATACACATCT</me>
+                  <me>TCTACACATATTCTCTGTC</me>         XXX...XXXXXXXXXXXX<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7> -5'
+</seq>
+</pre>
+
+<h3>(3a) Chromatin accessibility: Droplet capture and gap fill-in (the first step of linear PCR, 72 degree), single primer linear PCR, this steps achieves cell barcodes addition</h3>
+<pre>
+<seq>
+|--5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5>-------------->
+                                                    5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>XXXXXXXXXXXX...XXXXXXXXXXXX<me>CTGTCTCTTATACACATCT</me><s7>CCGAGCCCACGAGAC</s7>
+                                                        <s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me>XXXXXXXXXXXX...XXXXXXXXXXXX<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7> -5'
+</seq>
+</pre>
+
+<h3>(3b) Targeted genotyping: GoT-ChA primer spike in, droplet capture, this steps achieves cell barcodes addition, exponential amplification</h3>
+<pre>
+<seq>
+<i>Targeted genotyping</i>
+
+5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>-------------->
+                                 5'- <goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI rev-primer]</goi>
+                                     <goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI rev-primer]</goi> -5'
+                                                 <----------------<goi>[GOI rev-primer]</goi><is2>CTGTGCTACGAAGAGTGAACGA</is2> - 5'
+
+<i>Droplet capture</i>
+
+|--5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5>-------------->
+                                                    5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI rev-primer]</goi><is2>GACACGATGCTTCTCACTTGCT</is2>
+                                                        <s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI rev-primer]</goi><is2>CTGTGCTACGAAGAGTGAACGA</is2> -5'
+</seq>
+</pre>
+
+<h3>(4a) Chromatin accessibility: Product after single primer linear amplification</h3>
+<pre>
+<seq>
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>XXXXXXXXXXXX...XXXXXXXXXXXX<me>CTGTCTCTTATACACATCT</me><s7>CCGAGCCCACGAGAC</s7>
+    <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>[16-bp cell barcode]</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me>XXXXXXXXXXXX...XXXXXXXXXXXX<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7> -5'
+</seq>
+</pre>
+
+<h3>(4b) Targeted genotyping: Product after exponential amplification (further amplification with P5 & IS2 primers) </h3>
+<pre>
+<seq>
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI rev-primer]</goi><is2>GACACGATGCTTCTCACTTGCT</is2>
+    <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>[16-bp cell barcode]</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI rev-primer]</goi><is2>CTGTGCTACGAAGAGTGAACGA</is2> -5'
+</seq>
+</pre>
+
+<h3>(5) Add SI-PCR Primer B (PN-2000128) and i7 Sample Index Plate N, Set A (PN-3000262) for ATAC library amplification:</h3>
+<pre>
+<seq>
+5'- <p5>AATGATACGGCGACCACCGAGA</p5>---------------->
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>XXX...XXX<me>CTGTCTCTTATACACATCT</me><s7>CCGAGCCCACGAGAC</s7>
+    <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>[16-bp cell barcode]</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me>XXX...XXX<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7> -5'
+                                                                                                 <----------------<s7>GGCTCGGGTGCTCTG</s7>[8-bp sample index]<p7>TAGAGCATACGGCAGAAGACGAAC</p7> -5'
+</seq>
+</pre>
+
+<h3>(6) Final ATAC library structure:</h3>
+<pre>
+<align class="small">
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>XXX...XXX<me>CTGTCTCTTATACACATCT</me><s7>CCGAGCCCACGAGAC</s7>NNNNNNNN<p7>ATCTCGTATGCCGTCTTCTGCTTG</p7> -3'
+3'- <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me>XXX...XXX<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7>NNNNNNNN<p7>TAGAGCATACGGCAGAAGACGAAC</p7> -5'
+           <p5>Illumina P5</p5>              <cbc>16-bp cell</cbc>     <s5>Nextera s5</s5>         <me>ME</me>            gDNA           <me>ME</me>           <s7>Nextera s7</s7>     8-bp         <p7>Illumina P7</p7>
+                                      <cbc>barcode</cbc>                                                                               sample index
+</align>
+</pre>
+
+<h3>(7) Add P5 and nested primer (with TruSeq read 2 primer) for genotyping library amplification:</h3>
+<pre>
+<seq>
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5>---------------->
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi>XXX...XXX<goi>[GOI rev-primer]</goi><is2>GACACGATGCTTCTCACTTGCT</is2>
+    <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>[16-bp cell barcode]</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi>XXX...XXX<goi>[GOI rev-primer]</goi><is2>CTGTGCTACGAAGAGTGAACGA</is2> -5'
+                                                                                                  <----------------<goi>[GOI nested-primer]</goi>
+                                                                                                                                      <s7>TCTAGCCTTCTCGTGTGCAGAC</s7>/5BiosG/ -5'
+</seq>
+</pre>
+
+<h3>(8) Product after GoT-ChA P5/nested primer amplification:</h3>
+<pre>
+<seq>
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>AGATCGGAAGAGCACACGTCTG</s7>
+    <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>[16-bp cell barcode]</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>TCTAGCCTTCTCGTGTGCAGAC</s7>/5BiosG/ -5'
+
+</seq>
+</pre>
+
+<h3>(9) Biotin pulldown, add P5 and i7 TruSeq primer for GoT-ChA library amplification: </h3>
+<pre>
+<seq>
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5>---------------->
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>AGATCGGAAGAGCACACGTCTG</s7>
+    <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>[16-bp cell barcode]</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>TCTAGCCTTCTCGTGTGCAGAC</s7>/5BiosG/ -5'
+                                                                                                                     <----------------<s7>TCTAGCCTTCTCGTGTGCAGACTTGAGGTCAGTG</s7>[8-bp sample index]<p7>TAGAGCATACGGCAGAAGACGAAC</p7> -5'
+</seq>
+</pre>
+
+<h3>(9) Final GoT-ChA library structure: </h3>
+<pre>
+<align class="small">
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>[16-bp cell barcode]</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC</s7>[8-bp sample index]<p7>ATCTCGTATGCCGTCTTCTGCTTG</p7>
+    <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>[16-bp cell barcode]</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>TCTAGCCTTCTCGTGTGCAGACTTGAGGTCAGTG</s7>[8-bp sample index]<p7>TAGAGCATACGGCAGAAGACGAAC</p7> -5'
+            <p5>Illumina P5</p5>                <cbc>16-bp cell</cbc>      <s5>Nextera s5</s5>          <me>ME</me>                               gDNA                                  <s7>Truseq s7</s7>                      8-bp            <p7>Illumina P7</p7>
+                                        <cbc>barcode</cbc>                                                                                                                              sample index
+</align>
+</pre>
+
+<br>
+
+<h2>Single cell ATAC Library sequencing (both read 1 and read 2 contain useful information about open chromatin):</h2>
+
+<h3>(1) Add Nextera Read 1 primer to sequence the first read (bottom strand as template, 50 cycles, open chromatin read):</h3>
+<pre>
+<align class="small">
+                                             5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>------->
+3'- <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me>XXX...XXX<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7>NNNNNNNN<p7>TAGAGCATACGGCAGAAGACGAAC</p7> -5'
+</align>
+</pre>
+
+<h3>(2) Add Nextera Sample index sequencing primer (index1) to sequence the sample index (bottom strand as template, 8 cycles):</h3>
+<pre>
+<align class="small">
+                                                                                       5'- <me>CTGTCTCTTATACACATCT</me><s7>CCGAGCCCACGAGAC</s7>------->
+3'- <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me>XXX...XXX<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7>NNNNNNNN<p7>TAGAGCATACGGCAGAAGACGAAC</p7> -5'
+</align>
+</pre>
+
+<h3>(3) Cluster regeneration, add Cell barcode sequencing primer (index2) to sequence the second index (i5) (top strand as template, 16 cycles, this is cell barcode):</h3>
+<pre>
+<align class="small">
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>XXX...XXX<me>CTGTCTCTTATACACATCT</me><s7>CCGAGCCCACGAGAC</s7>NNNNNNNN<p7>ATCTCGTATGCCGTCTTCTGCTTG</p7> -3'
+                                 <---------------<s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me> -5'
+</align>
+</pre>
+
+<h3>(4) Add Nextera Read 2 primer to sequence the second read (top strand as template, 50 cycles, open chromatin read):</h3>
+<pre>
+<align class="small">
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>XXX...XXX<me>CTGTCTCTTATACACATCT</me><s7>CCGAGCCCACGAGAC</s7>NNNNNNNN<p7>ATCTCGTATGCCGTCTTCTGCTTG</p7> -3'
+                                                                                    <------<me>GACAGAGAATATGTGTAGA</me><s7>GGCTCGGGTGCTCTG</s7> -5'
+</align>
+</pre>
+
+<h2>GoT-ChA Library sequencing :</h2>
+
+<h3>(1) Add Nextera Read 1 primer to sequence the first read (bottom strand as template, 50 cycles, genotype read):</h3>
+<pre>
+<align class="small">
+                                             5'- <s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me>------->
+3'- <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>TCTAGCCTTCTCGTGTGCAGACTTGAGGTCAGTG</s7>NNNNNNNN<p7>TAGAGCATACGGCAGAAGACGAAC</p7> -5'
+</align>
+</pre>
+
+<h3>(2) Add TruSeq Sample index sequencing primer (index1) to sequence the sample index (bottom strand as template, 8 cycles):</h3>
+<pre>
+<align class="small">
+                                                                                                                               5'- <s7>GATCGGAAGAGCACACGTCTGAACTCCAGTCAC</s7>------->
+3'- <p5>TTACTATGCCGCTGGTGGCTCTAGATGTG</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>TCTAGCCTTCTCGTGTGCAGACTTGAGGTCAGTG</s7>NNNNNNNN<p7>TAGAGCATACGGCAGAAGACGAAC</p7> -5'
+</align>
+</pre>
+
+<h3>(3) Cluster regeneration, add Cell barcode sequencing primer (index2) to sequence the second index (i5) (top strand as template, 16 cycles, this is cell barcode):</h3>
+<pre>
+<align class="small">
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC</s7>NNNNNNNN<p7>ATCTCGTATGCCGTCTTCTGCTTG</p7> -3'
+                                 <---------------<s5>AGCAGCCGTCGCAG</s5><me>TCTACACATATTCTCTGTC</me> -5'
+</align>
+</pre>
+
+<h3>(4) Add TruSeq Read 2 primer to sequence the second read (top strand as template, 50 cycles, genotype read):</h3>
+<pre>
+<align class="small">
+5'- <p5>AATGATACGGCGACCACCGAGATCTACAC</p5><cbc>NNNNNNNNNNNNNNNN</cbc><s5>TCGTCGGCAGCGTC</s5><me>AGATGTGTATAAGAGACAG</me><goi>[GOI forward-primer]</goi>XXX...XXX<goi>[GOI nested-primer]</goi><s7>AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC</s7>NNNNNNNN<p7>ATCTCGTATGCCGTCTTCTGCTTG</p7> -3'
+                                                                                                                           <------<s7>TCTAGCCTTCTCGTGTGCAGACTTGAGGTCAGTG</s7> -5'
+</align>
+</pre>
+
+</body>
+</html>
