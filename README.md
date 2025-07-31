@@ -61,7 +61,7 @@ Click the following links to view the methods. Notes:
   - [CoBATCH](https://teichlab.github.io/scg_lib_structs/methods_html/CoBATCH.html)
   - [scDamID](https://teichlab.github.io/scg_lib_structs/methods_html/scDamID.html)
   - [s3-ATAC](https://teichlab.github.io/scg_lib_structs/methods_html/s3-ATAC.html)
-  - [GoT-ChA](http:://jay-leung.github.io/scg_lib_structs/methods_html/GoT-ChA.html)
+  - [GoT-ChA](http://jay-leung.github.io/scg_lib_structs/methods_html/GoT-ChA.html)
 
 - ### Genomic DNA or DNA methylation
 
